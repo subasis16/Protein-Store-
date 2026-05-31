@@ -12,6 +12,7 @@ import java.security.Key;
 import java.util.Date;
 import java.util.function.Function;
 
+
 @Service
 public class JwtService {
 
@@ -60,5 +61,17 @@ public class JwtService {
     private Key getSigningKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    public long getRemainingValidity(String token) {
+
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+        return claims.getExpiration().getTime()
+                - System.currentTimeMillis();
     }
 }

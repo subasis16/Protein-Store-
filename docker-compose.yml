@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+
+  # Spring Boot Backend
+  app:
+    build: .
+    container_name: fitfuel-app
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fitfuel?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: SERVEROFSUBASIS
+      SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/fitfuel_catalog
+      SPRING_DATA_MONGODB_DATABASE: fitfuel_catalog
+      SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      JWT_SECRET: Zml0ZnVlbC1zdXBlci1zZWNyZXQta2V5LWZpdGZ1ZWwtc3VwZXItc2VjcmV0LWtleQ==
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mongo:
+        condition: service_started
+      elasticsearch:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
+  # MySQL
+  mysql:
+    image: mysql:8.0
+    container_name: fitfuel-mysql
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: SERVEROFSUBASIS
+      MYSQL_DATABASE: fitfuel
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # MongoDB
+  mongo:
+    image: mongo:7
+    container_name: fitfuel-mongo
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
+  # Elasticsearch
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.0.0
+    container_name: fitfuel-elasticsearch
+    ports:
+      - "9200:9200"
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis
+  redis:
+    image: redis:7
+    container_name: fitfuel-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+# Persistent Volumes
+volumes:
+  mysql_data:
+  mongo_data:
+  es_data:

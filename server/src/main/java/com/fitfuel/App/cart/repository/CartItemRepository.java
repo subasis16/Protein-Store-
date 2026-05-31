@@ -1,0 +1,15 @@
+package com.fitfuel.App.cart.repository;
+
+import com.fitfuel.App.cart.entity.Cart;
+import com.fitfuel.App.cart.entity.CartItem;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface CartItemRepository extends JpaRepository<CartItem, Long> {
+
+    List<CartItem> findByCart(Cart cart);
+
+    Optional<CartItem> findByCartAndProductId(Cart cart, String productId);
+}

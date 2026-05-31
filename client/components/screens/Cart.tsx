@@ -1,44 +1,86 @@
 import Colors from "@/constants/Colors";
-import { PRODUCTS } from "@/constants/products";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
-import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useState, useCallback } from "react";
+import { useFocusEffect } from "expo-router";
+import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import api from "@/services/api";
 
 const CartScreen = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   
-  const [cartItems, setCartItems] = useState([
-    { ...PRODUCTS[0], quantity: 1, selectedSize: "1kg" },
-    { ...PRODUCTS[1], quantity: 2, selectedSize: "500g" },
-  ]);
+  const [cartItems, setCartItems] = useState<any[]>([]);
+  const [totalAmount, setTotalAmount] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  const updateQuantity = (id: string, delta: number) => {
-    setCartItems(prev => prev.map(item => 
-      item.id === id ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item
-    ));
+  const fetchCart = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await api.getCart();
+      setCartItems(data.items);
+      setTotalAmount(data.totalAmount);
+    } catch (error) {
+      console.error("Failed to fetch cart", error);
+      setCartItems([]);
+      setTotalAmount(0);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchCart();
+    }, [fetchCart])
+  );
+
+  const updateQuantity = async (productId: string, delta: number) => {
+    const item = cartItems.find(i => i.id === productId);
+    if (!item) return;
+    
+    const newQuantity = Math.max(1, item.quantity + delta);
+
+    // Optimistic update
+    setCartItems(prev => prev.map(i => i.id === productId ? { ...i, quantity: newQuantity } : i));
+
+    try {
+      await api.updateCartItem(productId, newQuantity);
+      await fetchCart(); // Re-fetch to get accurate totals from backend
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Failed to update quantity");
+      fetchCart();
+    }
   };
 
-  const removeItem = (id: string) => {
-    setCartItems(prev => prev.filter(item => item.id !== id));
+  const removeItem = async (productId: string) => {
+    // Optimistic removal
+    setCartItems(prev => prev.filter(item => item.id !== productId));
+    try {
+      await api.removeFromCart(productId);
+      await fetchCart(); // Re-fetch for accurate totals
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Failed to remove item");
+      fetchCart();
+    }
   };
 
-  const subtotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-  const shipping = 99;
-  const total = subtotal + shipping;
+  const shipping = cartItems.length > 0 ? 99 : 0;
+  const total = totalAmount + shipping;
 
   const renderItem = ({ item }: { item: any }) => (
     <View style={styles.cartItem}>
       <View style={styles.imageContainer}>
-        <Image source={item.image} style={styles.productImage} resizeMode="contain" />
+        <Ionicons name="cube-outline" size={40} color={Colors.primary} />
       </View>
       <View style={styles.itemInfo}>
         <View style={styles.itemHeader}>
-          <View>
-            <Text style={styles.itemName}>{item.name}</Text>
-            <Text style={styles.itemSubtitle}>{item.selectedSize} • {item.subtitle}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
+            <Text style={styles.itemSubtitle}>Qty: {item.quantity}</Text>
           </View>
           <TouchableOpacity onPress={() => removeItem(item.id)}>
             <Ionicons name="trash-outline" size={20} color="#FF4444" />
@@ -79,13 +121,17 @@ const CartScreen = () => {
         keyExtractor={item => item.id}
         contentContainerStyle={styles.list}
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="bag-outline" size={80} color={Colors.border} />
-            <Text style={styles.emptyText}>Your cart is empty</Text>
-            <TouchableOpacity style={styles.shopButton}>
-              <Text style={styles.shopButtonText}>Go Shopping</Text>
-            </TouchableOpacity>
-          </View>
+          loading ? (
+            <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 100 }} />
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="bag-outline" size={80} color={Colors.border} />
+              <Text style={styles.emptyText}>Your cart is empty</Text>
+              <TouchableOpacity style={styles.shopButton} onPress={() => router.push("/")}>
+                <Text style={styles.shopButtonText}>Go Shopping</Text>
+              </TouchableOpacity>
+            </View>
+          )
         }
       />
 
@@ -93,7 +139,7 @@ const CartScreen = () => {
         <View style={styles.footer}>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Subtotal</Text>
-            <Text style={styles.summaryValue}>₹{subtotal}</Text>
+            <Text style={styles.summaryValue}>₹{totalAmount}</Text>
           </View>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Shipping</Text>
@@ -156,10 +202,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
-  },
-  productImage: {
-    width: 70,
-    height: 70,
   },
   itemInfo: {
     flex: 1,

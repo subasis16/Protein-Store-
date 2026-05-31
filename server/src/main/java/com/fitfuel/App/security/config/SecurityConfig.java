@@ -7,35 +7,69 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import com.fitfuel.App.security.filter.LoginRateLimitFilter;
 
 @Configuration
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+        private final JwtAuthenticationFilter jwtAuthenticationFilter;
+        private final LoginRateLimitFilter loginRateLimitFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-    }
+        public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,LoginRateLimitFilter loginRateLimitFilter) {
+                this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+                this.loginRateLimitFilter = loginRateLimitFilter;
+        }
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        @Bean
+        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-        http
-                .csrf(csrf -> csrf.disable())
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/products/**").permitAll()
-                        .requestMatchers("/api/search/**").permitAll()
-                        .anyRequest().authenticated()
-                )
-                .addFilterBefore(
-                        jwtAuthenticationFilter,
-                        UsernamePasswordAuthenticationFilter.class
-                );
+                return http
+        .csrf(csrf -> csrf.disable())
+         .httpBasic(httpBasic -> httpBasic.disable())
+         .formLogin(form -> form.disable())
+          .sessionManagement(session -> session
+          .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+.authorizeHttpRequests(auth -> auth
 
-        return http.build();
-    }
+        .requestMatchers(
+                "/api/auth/**"
+        ).permitAll()
+
+        .requestMatchers(
+                "/api/admin/**"
+        ).authenticated()
+
+        .requestMatchers(
+                "/api/cart/**"
+        ).authenticated()
+
+        .requestMatchers(
+                "/api/orders/**"
+        ).authenticated()
+
+        .requestMatchers(
+                "/api/address/**"
+        ).authenticated()
+
+        .requestMatchers(
+                "/api/wishlist/**"
+        ).authenticated()
+
+        .requestMatchers(
+                "/api/reviews/**"
+        ).authenticated()
+
+        .anyRequest().permitAll()
+)
+         .addFilterBefore(
+        loginRateLimitFilter,
+        UsernamePasswordAuthenticationFilter.class
+)
+
+.addFilterBefore(
+        jwtAuthenticationFilter,
+        UsernamePasswordAuthenticationFilter.class
+)
+  .build();
+        }
 }

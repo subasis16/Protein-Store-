@@ -3,6 +3,7 @@ package com.fitfuel.App.search.document;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Document(indexName = "products")
@@ -19,7 +20,7 @@ public class ProductSearchDocument {
 
     private String category;
 
-    private Double price;
+    private BigDecimal price;
 
     private List<String> tags;
 
@@ -32,7 +33,7 @@ public class ProductSearchDocument {
             String brand,
             String description,
             String category,
-            Double price,
+            BigDecimal price,
             List<String> tags) {
         this.id = id;
         this.name = name;
@@ -47,55 +48,27 @@ public class ProductSearchDocument {
         return id;
     }
 
-    public void setId(String id) {
-        this.id = id;
-    }
-
     public String getName() {
         return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
     }
 
     public String getBrand() {
         return brand;
     }
 
-    public void setBrand(String brand) {
-        this.brand = brand;
-    }
-
     public String getDescription() {
         return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
     }
 
     public String getCategory() {
         return category;
     }
 
-    public void setCategory(String category) {
-        this.category = category;
-    }
-
-    public Double getPrice() {
+    public BigDecimal getPrice() {
         return price;
-    }
-
-    public void setPrice(Double price) {
-        this.price = price;
     }
 
     public List<String> getTags() {
         return tags;
-    }
-
-    public void setTags(List<String> tags) {
-        this.tags = tags;
     }
 }

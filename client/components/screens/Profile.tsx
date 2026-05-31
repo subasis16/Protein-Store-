@@ -4,10 +4,12 @@ import { useRouter } from "expo-router";
 import React from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from "@/context/AuthContext";
 
 const ProfileScreen = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user, logout } = useAuth();
 
   const menuItems = [
     { icon: "bag-check-outline", label: "My Orders", route: "/orders" },
@@ -30,8 +32,8 @@ const ProfileScreen = () => {
              <Ionicons name="person" size={40} color={Colors.primary} />
           </View>
           <View style={styles.userInfo}>
-            <Text style={styles.userName}>Subasis Sahoo</Text>
-            <Text style={styles.userEmail}>subasis@example.com</Text>
+            <Text style={styles.userName}>{user?.name || "User"}</Text>
+            <Text style={styles.userEmail}>{user?.email || "user@example.com"}</Text>
           </View>
           <TouchableOpacity style={styles.editButton}>
             <Ionicons name="pencil" size={18} color={Colors.textPrimary} />
@@ -56,7 +58,7 @@ const ProfileScreen = () => {
           ))}
         </View>
 
-        <TouchableOpacity style={styles.logoutButton}>
+        <TouchableOpacity style={styles.logoutButton} onPress={logout}>
           <Ionicons name="log-out-outline" size={22} color="#FF4444" />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>

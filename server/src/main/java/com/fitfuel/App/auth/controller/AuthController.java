@@ -8,6 +8,7 @@ import com.fitfuel.App.common.response.ApiResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -40,4 +41,31 @@ public class AuthController {
                 ApiResponse.success("Login successful", response)
         );
     }
+
+    @PostMapping("/logout")
+public ResponseEntity<ApiResponse<String>> logout(
+        HttpServletRequest request
+) {
+
+    String authHeader =
+            request.getHeader("Authorization");
+
+    if (authHeader == null ||
+            !authHeader.startsWith("Bearer ")) {
+
+        throw new RuntimeException("Token missing");
+    }
+
+    String token = authHeader.substring(7);
+
+    String response =
+            authService.logout(token);
+
+    return ResponseEntity.ok(
+            ApiResponse.success(
+                    "Logout successful",
+                    response
+            )
+    );
+}
 }

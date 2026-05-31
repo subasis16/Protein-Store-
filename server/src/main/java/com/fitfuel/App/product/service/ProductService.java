@@ -6,6 +6,8 @@ import com.fitfuel.App.product.dto.CreateProductRequestDTO;
 import com.fitfuel.App.product.dto.ProductResponseDTO;
 import com.fitfuel.App.product.mapper.ProductMapper;
 import com.fitfuel.App.product.repository.ProductRepository;
+import com.fitfuel.App.search.repository.ProductSearchRepository;
+
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -16,14 +18,23 @@ import java.util.stream.Collectors;
 public class ProductService {
 
     private final ProductRepository productRepository;
+    private final ProductSearchRepository productSearchRepository;
 
-    public ProductService(ProductRepository productRepository) {
+    public ProductService(
+            ProductRepository productRepository,
+            ProductSearchRepository productSearchRepository) {
         this.productRepository = productRepository;
+        this.productSearchRepository = productSearchRepository;
     }
 
     public ProductResponseDTO createProduct(CreateProductRequestDTO request) {
-        ProductDocument doc = ProductMapper.toDocument(request);
-        ProductDocument saved = productRepository.save(doc);
+        ProductDocument product = ProductMapper.toDocument(request);
+
+        ProductDocument saved = productRepository.save(product);
+
+        productSearchRepository.save(
+                ProductMapper.toSearchDocument(saved));
+
         return ProductMapper.toResponseDTO(saved);
     }
 

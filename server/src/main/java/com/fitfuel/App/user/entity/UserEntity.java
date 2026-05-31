@@ -94,4 +94,8 @@ public class UserEntity {
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
+
+    public String getName() {
+      return fullName;
+    }
 }

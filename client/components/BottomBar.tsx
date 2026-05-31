@@ -2,6 +2,7 @@ import Colors from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export type TabName = "index" | "favorites" | "cart" | "profile";
 
@@ -18,8 +19,10 @@ const tabs = [
 ] as const;
 
 const BottomBar = ({ activeTab, onTabChange }: BottomBarProps) => {
+  const insets = useSafeAreaInsets();
+  
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 8) }]}>
       {tabs.map((tab) => {
         const isActive = activeTab === tab.name;
         return (

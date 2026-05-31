@@ -1,17 +1,81 @@
 import Colors from "@/constants/Colors";
-import { PRODUCTS } from "@/constants/products";
+import { Product } from "@/constants/products";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React from "react";
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import api from "@/services/api";
 
 const ProductDetails = () => {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  
-  const product = PRODUCTS.find((p) => p.id === id);
+
+  const [product, setProduct] = useState<Product | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
+  const [addingToCart, setAddingToCart] = useState(false);
+  const [isInWishlist, setIsInWishlist] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [productData, wishlistData] = await Promise.all([
+          api.getProductById(id as string),
+          api.getWishlist().catch(() => []), // Catch if not logged in
+        ]);
+        setProduct(productData);
+        if (productData && wishlistData) {
+          const inWish = wishlistData.some((item: any) => item.id === productData.id);
+          setIsInWishlist(inWish);
+        }
+      } catch (error) {
+        console.error("Error fetching product details", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (id) fetchData();
+  }, [id]);
+
+  const handleAddToCart = async () => {
+    if (!product) return;
+    setAddingToCart(true);
+    try {
+      await api.addToCart(product.id, 1);
+      Alert.alert("Success", "Added to cart!");
+    } catch (error: any) {
+      Alert.alert("Error", error.response?.data || "Failed to add to cart. Please login first.");
+    } finally {
+      setAddingToCart(false);
+    }
+  };
+
+  const handleToggleWishlist = async () => {
+    if (!product) return;
+    try {
+      if (isInWishlist) {
+        await api.removeFromWishlist(product.id);
+        setIsInWishlist(false);
+        Alert.alert("Success", "Removed from wishlist!");
+      } else {
+        await api.addToWishlist(product.id);
+        setIsInWishlist(true);
+        Alert.alert("Success", "Added to wishlist!");
+      }
+    } catch (error: any) {
+      Alert.alert("Error", error.response?.data || "Failed to update wishlist. Please login first.");
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.errorContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
 
   if (!product) {
     return (
@@ -29,12 +93,16 @@ const ProductDetails = () => {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Image Section */}
         <View style={[styles.imageSection, { paddingTop: insets.top + 20 }]}>
-          <View style={styles.headerButtons}>
+          <View style={[styles.headerButtons, { top: Math.max(insets.top, 10) }]}>
             <TouchableOpacity style={styles.iconButton} onPress={() => router.back()}>
               <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton}>
-              <Ionicons name="heart-outline" size={24} color={Colors.textPrimary} />
+            <TouchableOpacity style={styles.iconButton} onPress={handleToggleWishlist}>
+              <Ionicons 
+                name={isInWishlist ? "heart" : "heart-outline"} 
+                size={24} 
+                color={isInWishlist ? Colors.primary : Colors.textPrimary} 
+              />
             </TouchableOpacity>
           </View>
           
@@ -57,21 +125,35 @@ const ProductDetails = () => {
           <View style={styles.descriptionContainer}>
             <Text style={styles.descriptionTitle}>Description</Text>
             <Text style={styles.descriptionText}>
-              This high-quality {product.category} supplement is designed to support your fitness goals. 
-              Formulated with premium ingredients to ensure maximum absorption and effectiveness.
+              {product.description || `This high-quality ${product.category} supplement is designed to support your fitness goals. Formulated with premium ingredients to ensure maximum absorption and effectiveness.`}
             </Text>
           </View>
 
-          <View style={styles.sizeContainer}>
-            <Text style={styles.descriptionTitle}>Select Size</Text>
-            <View style={styles.sizeRow}>
-              {["500g", "1kg", "2kg"].map((size) => (
-                <TouchableOpacity key={size} style={[styles.sizeTab, size === "1kg" && styles.sizeTabActive]}>
-                  <Text style={[styles.sizeText, size === "1kg" && styles.sizeTextActive]}>{size}</Text>
-                </TouchableOpacity>
-              ))}
+          {product.weights && product.weights.length > 0 && (
+            <View style={styles.sizeContainer}>
+              <Text style={styles.descriptionTitle}>Available Size</Text>
+              <View style={styles.sizeRow}>
+                {product.weights.map((size) => (
+                  <TouchableOpacity key={size} style={[styles.sizeTab, styles.sizeTabActive]}>
+                    <Text style={[styles.sizeText, styles.sizeTextActive]}>{size}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
-          </View>
+          )}
+
+          {product.flavors && product.flavors.length > 0 && (
+            <View style={styles.sizeContainer}>
+              <Text style={styles.descriptionTitle}>Flavors</Text>
+              <View style={styles.sizeRow}>
+                {product.flavors.map((flavor) => (
+                  <TouchableOpacity key={flavor} style={[styles.sizeTab, styles.sizeTabActive]}>
+                    <Text style={[styles.sizeText, styles.sizeTextActive]}>{flavor}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -81,8 +163,16 @@ const ProductDetails = () => {
           <Text style={styles.priceLabel}>Price</Text>
           <Text style={styles.priceValue}>₹{product.price}</Text>
         </View>
-        <TouchableOpacity style={styles.buyButton}>
-          <Text style={styles.buyButtonText}>Buy Now</Text>
+        <TouchableOpacity
+          style={[styles.buyButton, addingToCart && { opacity: 0.7 }]}
+          onPress={handleAddToCart}
+          disabled={addingToCart}
+        >
+          {addingToCart ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.buyButtonText}>Add to Cart</Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -186,10 +276,11 @@ const styles = StyleSheet.create({
   sizeRow: {
     flexDirection: "row",
     gap: 12,
+    flexWrap: "wrap",
   },
   sizeTab: {
-    flex: 1,
     paddingVertical: 12,
+    paddingHorizontal: 20,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.border,

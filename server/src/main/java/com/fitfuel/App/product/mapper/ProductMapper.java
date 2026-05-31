@@ -3,6 +3,7 @@ package com.fitfuel.App.product.mapper;
 import com.fitfuel.App.product.document.ProductDocument;
 import com.fitfuel.App.product.dto.CreateProductRequestDTO;
 import com.fitfuel.App.product.dto.ProductResponseDTO;
+import com.fitfuel.App.search.document.ProductSearchDocument;
 
 public class ProductMapper {
 
@@ -49,5 +50,21 @@ public class ProductMapper {
         dto.setInStock(doc.isInStock());
         dto.setStockQuantity(doc.getStockQuantity());
         return dto;
+    }
+
+    public static ProductSearchDocument toSearchDocument(ProductDocument doc) {
+        if (doc == null) {
+            return null;
+        }
+
+        return new ProductSearchDocument(
+                doc.getId(),
+                doc.getName(),
+                doc.getBrand(),
+                doc.getDescription(),
+                doc.getCategory(),
+                doc.getPrice(),
+                doc.getFlavors()
+        );
     }
 }

@@ -1,14 +1,75 @@
 import Colors from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useState, useCallback } from "react";
+import { useFocusEffect } from "expo-router";
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import api from "@/services/api";
 
 const CheckoutScreen = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [paymentMethod, setPaymentMethod] = useState("card");
+  const [addresses, setAddresses] = useState<any[]>([]);
+  const [selectedAddress, setSelectedAddress] = useState<any>(null);
+  const [cart, setCart] = useState<{ items: any[], totalAmount: number }>({ items: [], totalAmount: 0 });
+  const [loading, setLoading] = useState(true);
+  const [placing, setPlacing] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [cartData, addressData] = await Promise.all([
+        api.getCart(),
+        api.getAddresses(),
+      ]);
+      setCart(cartData);
+      setAddresses(addressData);
+      // Auto-select default address or first address
+      const defaultAddr = addressData.find((a: any) => a.isDefault || a.default);
+      setSelectedAddress(defaultAddr || addressData[0] || null);
+    } catch (error) {
+      console.error("Error loading checkout data", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [fetchData])
+  );
+
+  const shipping = 99;
+  const total = cart.totalAmount + shipping;
+
+  const handlePlaceOrder = async () => {
+    if (!selectedAddress) {
+      Alert.alert("Error", "Please add a shipping address first.");
+      return;
+    }
+    setPlacing(true);
+    try {
+      await api.placeOrder(selectedAddress.id);
+      Alert.alert("Success", "Order placed successfully!", [
+        { text: "OK", onPress: () => router.replace("/") }
+      ]);
+    } catch (error: any) {
+      Alert.alert("Error", error.response?.data || "Failed to place order.");
+    } finally {
+      setPlacing(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top, justifyContent: "center", alignItems: "center" }]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -25,20 +86,36 @@ const CheckoutScreen = () => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Shipping Address</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push("/address")}>
               <Text style={styles.editLink}>Change</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.addressCard}>
-            <View style={styles.addressIcon}>
-              <Ionicons name="location" size={24} color={Colors.primary} />
+          {selectedAddress ? (
+            <View style={styles.addressCard}>
+              <View style={styles.addressIcon}>
+                <Ionicons name="location" size={24} color={Colors.primary} />
+              </View>
+              <View style={styles.addressInfo}>
+                <Text style={styles.addressName}>{selectedAddress.fullName}</Text>
+                <Text style={styles.addressText}>
+                  {selectedAddress.addressLine1}
+                  {selectedAddress.addressLine2 ? `, ${selectedAddress.addressLine2}` : ""}
+                  {`, ${selectedAddress.city}, ${selectedAddress.state} ${selectedAddress.postalCode}`}
+                </Text>
+                <Text style={styles.addressPhone}>{selectedAddress.phone}</Text>
+              </View>
             </View>
-            <View style={styles.addressInfo}>
-              <Text style={styles.addressName}>Subasis Sahoo</Text>
-              <Text style={styles.addressText}>123 Fitness Street, Gym Lane, Bhubaneswar, 751001</Text>
-              <Text style={styles.addressPhone}>+91 98765 43210</Text>
+          ) : (
+            <View style={styles.addressCard}>
+              <View style={styles.addressIcon}>
+                <Ionicons name="location-outline" size={24} color={Colors.textSecondary} />
+              </View>
+              <View style={styles.addressInfo}>
+                <Text style={styles.addressName}>No address saved</Text>
+                <Text style={styles.addressText}>Please add a shipping address from your profile.</Text>
+              </View>
             </View>
-          </View>
+          )}
         </View>
 
         {/* Payment Methods */}
@@ -78,20 +155,16 @@ const CheckoutScreen = () => {
           <Text style={styles.sectionTitle}>Order Summary</Text>
           <View style={styles.summaryCard}>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Items (3)</Text>
-              <Text style={styles.summaryValue}>₹3,398</Text>
+              <Text style={styles.summaryLabel}>Items ({cart.items.length})</Text>
+              <Text style={styles.summaryValue}>₹{cart.totalAmount}</Text>
             </View>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Shipping Fee</Text>
-              <Text style={styles.summaryValue}>₹99</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Discount</Text>
-              <Text style={[styles.summaryValue, { color: "#4CAF50" }]}>-₹200</Text>
+              <Text style={styles.summaryValue}>₹{shipping}</Text>
             </View>
             <View style={[styles.summaryRow, styles.totalRow]}>
               <Text style={styles.totalLabel}>Grand Total</Text>
-              <Text style={styles.totalValue}>₹3,297</Text>
+              <Text style={styles.totalValue}>₹{total}</Text>
             </View>
           </View>
         </View>
@@ -99,8 +172,16 @@ const CheckoutScreen = () => {
 
       {/* Place Order Button */}
       <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
-        <TouchableOpacity style={styles.placeOrderButton} onPress={() => alert("Order Placed Successfully!")}>
-          <Text style={styles.placeOrderText}>Place Order • ₹3,297</Text>
+        <TouchableOpacity 
+          style={[styles.placeOrderButton, placing && { opacity: 0.7 }]}
+          onPress={handlePlaceOrder}
+          disabled={placing}
+        >
+          {placing ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.placeOrderText}>Place Order • ₹{total}</Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>

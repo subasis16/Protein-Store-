@@ -11,16 +11,50 @@ import {
   TextInput, 
   TouchableOpacity, 
   View,
-  Dimensions
+  Dimensions,
+  ActivityIndicator,
+  Alert
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from "@/context/AuthContext";
+import api from "@/services/api";
 
 const { width } = Dimensions.get("window");
 
 const AuthScreen = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { login } = useAuth();
+  
   const [isLogin, setIsLogin] = useState(true);
+  const [loading, setLoading] = useState(false);
+  
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleSubmit = async () => {
+    if (!email || !password || (!isLogin && !name)) {
+      Alert.alert("Error", "Please fill in all fields.");
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      if (isLogin) {
+        const data = await api.login(email, password);
+        await login(data.user, data.token);
+      } else {
+        const data = await api.register(name, email, password);
+        await login(data.user, data.token);
+      }
+    } catch (error: any) {
+      console.error(error);
+      Alert.alert("Error", error.response?.data?.message || "Authentication failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView 
@@ -45,6 +79,8 @@ const AuthScreen = () => {
                 placeholder="Full Name" 
                 placeholderTextColor={Colors.textSecondary}
                 style={styles.input}
+                value={name}
+                onChangeText={setName}
               />
             </View>
           )}
@@ -57,6 +93,8 @@ const AuthScreen = () => {
               keyboardType="email-address"
               autoCapitalize="none"
               style={styles.input}
+              value={email}
+              onChangeText={setEmail}
             />
           </View>
 
@@ -67,6 +105,8 @@ const AuthScreen = () => {
               placeholderTextColor={Colors.textSecondary}
               secureTextEntry
               style={styles.input}
+              value={password}
+              onChangeText={setPassword}
             />
           </View>
 
@@ -78,9 +118,14 @@ const AuthScreen = () => {
 
           <TouchableOpacity 
             style={styles.submitButton}
-            onPress={() => router.replace("/")}
+            onPress={handleSubmit}
+            disabled={loading}
           >
-            <Text style={styles.submitButtonText}>{isLogin ? "Login" : "Sign Up"}</Text>
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.submitButtonText}>{isLogin ? "Login" : "Sign Up"}</Text>
+            )}
           </TouchableOpacity>
 
           <View style={styles.divider}>

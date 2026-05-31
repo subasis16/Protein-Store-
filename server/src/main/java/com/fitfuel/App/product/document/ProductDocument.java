@@ -14,41 +14,28 @@ public class ProductDocument {
     private String id;
 
     private String name;
-
     private String brand;
-
     private String description;
-
     private BigDecimal price;
-
     private BigDecimal originalPrice;
-
     private String category;
-
     private List<String> flavors;
-
     private String weight;
-
     private List<String> imageUrls;
 
     private double rating;
-
     private int reviewCount;
 
     private boolean inStock;
-
     private int stockQuantity;
 
     private LocalDateTime createdAt;
-
     private LocalDateTime updatedAt;
 
     public ProductDocument() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
-
-    // --- Getters and Setters ---
 
     public String getId() {
         return id;

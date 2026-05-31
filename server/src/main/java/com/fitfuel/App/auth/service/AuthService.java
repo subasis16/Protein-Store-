@@ -11,6 +11,7 @@ import com.fitfuel.App.user.entity.UserEntity;
 import com.fitfuel.App.user.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import com.fitfuel.App.security.service.TokenBlacklistService;
 
 @Service
 public class AuthService {
@@ -18,15 +19,18 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+private final TokenBlacklistService tokenBlacklistService;
 
     public AuthService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
-            JwtService jwtService
+            JwtService jwtService,
+            TokenBlacklistService tokenBlacklistService
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+         this.tokenBlacklistService = tokenBlacklistService;
     }
 
     public AuthResponseDTO signup(SignupRequestDTO request) {
@@ -77,4 +81,17 @@ public class AuthService {
                 user.getEmail()
         );
     }
+
+    public String logout(String token) {
+
+    long remainingValidity =
+            jwtService.getRemainingValidity(token);
+
+    tokenBlacklistService.blacklistToken(
+            token,
+            remainingValidity
+    );
+
+    return "Logout successful";
+}
 }
