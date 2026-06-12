@@ -59,6 +59,10 @@ public class SecurityConfig {
                 "/api/reviews/**"
         ).authenticated()
 
+        .requestMatchers(
+                "/api/notifications/**"
+        ).authenticated()
+
         .anyRequest().permitAll()
 )
          .addFilterBefore(

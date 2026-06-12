@@ -1,7 +1,7 @@
 import Colors from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { StyleSheet, TextInput, View, TouchableOpacity } from "react-native";
+import { StyleSheet, TextInput, View } from "react-native";
 
 const SearchBar = () => {
   return (
@@ -14,9 +14,6 @@ const SearchBar = () => {
           placeholderTextColor={Colors.textSecondary}
         />
       </View>
-      <TouchableOpacity style={styles.filterButton}>
-        <Ionicons name="options-outline" size={20} color={Colors.primaryLight} />
-      </TouchableOpacity>
     </View>
   );
 };
@@ -45,12 +42,5 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     fontSize: 15,
   },
-  filterButton: {
-    width: 48,
-    height: 48,
-    backgroundColor: Colors.primary,
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
-  },
 });
+

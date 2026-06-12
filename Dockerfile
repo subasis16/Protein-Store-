@@ -1,36 +1,12 @@
 # ===============================
-# Stage 1: Build the application
-# ===============================
-FROM eclipse-temurin:21-jdk AS builder
-
-WORKDIR /app
-
-# Copy Maven wrapper and pom.xml first (for dependency caching)
-COPY server/mvnw server/mvnw
-COPY server/.mvn server/.mvn
-COPY server/pom.xml server/pom.xml
-
-# Make Maven wrapper executable
-RUN chmod +x server/mvnw
-
-# Download dependencies (cached layer unless pom.xml changes)
-RUN cd server && ./mvnw dependency:go-offline -B
-
-# Copy source code
-COPY server/src server/src
-
-# Build the JAR (skip tests for faster builds)
-RUN cd server && ./mvnw package -DskipTests -B
-
-# ===============================
-# Stage 2: Run the application
+# Run the pre-built application
 # ===============================
 FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
-# Copy the built JAR from builder stage
-COPY --from=builder /app/server/target/*.jar app.jar
+# Copy the pre-built JAR from the server/target directory
+COPY server/target/*.jar app.jar
 
 # Expose the application port
 EXPOSE 8080

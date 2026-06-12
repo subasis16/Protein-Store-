@@ -9,7 +9,7 @@
 *.iml
 
 # Build output (rebuilt inside Docker)
-server/target
+# server/target
 
 # Docs
 README.md

@@ -120,7 +120,7 @@ const AddressScreen = () => {
       Alert.alert("Success", "Address added successfully!");
     } catch (error: any) {
       console.error(error);
-      Alert.alert("Error", error.response?.data || "Failed to save address.");
+      Alert.alert("Error", api.getErrorMessage(error, "Failed to save address."));
     } finally {
       setSaving(false);
     }

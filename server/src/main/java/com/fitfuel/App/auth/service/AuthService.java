@@ -53,7 +53,9 @@ private final TokenBlacklistService tokenBlacklistService;
         return new AuthResponseDTO(
                 token,
                 "Bearer",
-                user.getEmail()
+                user.getEmail(),
+                user.getRole().name(),
+                user.getFullName()
         );
     }
 
@@ -78,7 +80,9 @@ private final TokenBlacklistService tokenBlacklistService;
         return new AuthResponseDTO(
                 token,
                 "Bearer",
-                user.getEmail()
+                user.getEmail(),
+                user.getRole().name(),
+                user.getFullName()
         );
     }
 

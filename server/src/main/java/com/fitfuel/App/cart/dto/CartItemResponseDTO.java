@@ -9,6 +9,7 @@ public class CartItemResponseDTO {
     private Integer quantity;
     private BigDecimal price;
     private BigDecimal subtotal;
+    private String imageUrl;
 
     public CartItemResponseDTO() {
     }
@@ -51,5 +52,13 @@ public class CartItemResponseDTO {
 
     public void setSubtotal(BigDecimal subtotal) {
         this.subtotal = subtotal;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 }

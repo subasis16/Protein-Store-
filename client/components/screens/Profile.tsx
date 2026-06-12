@@ -20,6 +20,10 @@ const ProfileScreen = () => {
     { icon: "help-circle-outline", label: "Help Center", route: "/help" },
   ];
 
+  if (user?.role === "ADMIN") {
+    menuItems.unshift({ icon: "shield-checkmark-outline", label: "Admin Dashboard", route: "/admin" });
+  }
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView showsVerticalScrollIndicator={false}>

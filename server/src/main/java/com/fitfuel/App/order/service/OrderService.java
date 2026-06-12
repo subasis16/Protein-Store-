@@ -46,7 +46,7 @@ public class OrderService {
         this.paymentRepository = paymentRepository;
     }
 
-    public String placeOrder(UserEntity user, Long addressId) {
+    public String placeOrder(UserEntity user, Long addressId, String paymentMethod) {
 
         Cart cart = cartRepository.findByUser(user)
                 .orElseThrow(() -> new RuntimeException("Cart not found"));
@@ -54,20 +54,19 @@ public class OrderService {
         List<CartItem> cartItems = cartItemRepository.findByCart(cart);
 
         for (CartItem cartItem : cartItems) {
+            ProductDocument product = productRepository.findById(cartItem.getProductId())
+                    .orElseThrow(() -> new RuntimeException("Product not found"));
 
-    ProductDocument product = productRepository.findById(cartItem.getProductId())
-            .orElseThrow(() -> new RuntimeException("Product not found"));
+            if (!product.isInStock() || product.getStockQuantity() <= 0) {
+                throw new RuntimeException(product.getName() + " is out of stock");
+            }
 
-    if (!product.isInStock() || product.getStockQuantity() <= 0) {
-        throw new RuntimeException(product.getName() + " is out of stock");
-    }
-
-    if (cartItem.getQuantity() > product.getStockQuantity()) {
-        throw new RuntimeException(
-                product.getName() + " does not have enough stock"
-        );
-    }
-}
+            if (cartItem.getQuantity() > product.getStockQuantity()) {
+                throw new RuntimeException(
+                        product.getName() + " does not have enough stock"
+                );
+            }
+        }
 
         if (cartItems.isEmpty()) {
             throw new RuntimeException("Cart is empty");
@@ -84,7 +83,12 @@ public class OrderService {
         order.setUser(user);
         order.setAddress(address);
         order.setTotalAmount(cart.getTotalAmount());
-        order.setStatus("PENDING_PAYMENT");
+        
+        if ("cod".equalsIgnoreCase(paymentMethod)) {
+            order.setStatus("PLACED");
+        } else {
+            order.setStatus("PAID");
+        }
 
         List<OrderItem> orderItems = cartItems.stream()
                 .map(cartItem -> {
@@ -100,10 +104,24 @@ public class OrderService {
                 .toList();
 
         order.setItems(orderItems);
-
         orderRepository.save(order);
 
-        return "Order created successfully";
+        // Deduct stock for each item
+        for (CartItem cartItem : cartItems) {
+            productRepository.findById(cartItem.getProductId()).ifPresent(product -> {
+                int newStock = product.getStockQuantity() - cartItem.getQuantity();
+                product.setStockQuantity(newStock);
+                product.setInStock(newStock > 0);
+                productRepository.save(product);
+            });
+        }
+
+        // Clear user's cart
+        cartItemRepository.deleteAll(cartItems);
+        cart.setTotalAmount(java.math.BigDecimal.ZERO);
+        cartRepository.save(cart);
+
+        return "Order placed successfully";
     }
 
     public List<OrderResponseDTO> getOrders(UserEntity user) {

@@ -117,6 +117,11 @@ public class CartService {
                     dto.setQuantity(item.getQuantity());
                     dto.setPrice(item.getPriceAtAddition());
                     dto.setSubtotal(item.getSubtotal());
+                    productRepository.findById(item.getProductId()).ifPresent(product -> {
+                        if (product.getImageUrls() != null && !product.getImageUrls().isEmpty()) {
+                            dto.setImageUrl(product.getImageUrls().get(0));
+                        }
+                    });
                     return dto;
                 })
                 .toList();

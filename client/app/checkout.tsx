@@ -52,12 +52,12 @@ const CheckoutScreen = () => {
     }
     setPlacing(true);
     try {
-      await api.placeOrder(selectedAddress.id);
+      await api.placeOrder(selectedAddress.id, paymentMethod);
       Alert.alert("Success", "Order placed successfully!", [
         { text: "OK", onPress: () => router.replace("/") }
       ]);
     } catch (error: any) {
-      Alert.alert("Error", error.response?.data || "Failed to place order.");
+      Alert.alert("Error", api.getErrorMessage(error, "Failed to place order."));
     } finally {
       setPlacing(false);
     }

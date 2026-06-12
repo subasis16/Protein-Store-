@@ -46,7 +46,7 @@ const ProductDetails = () => {
       await api.addToCart(product.id, 1);
       Alert.alert("Success", "Added to cart!");
     } catch (error: any) {
-      Alert.alert("Error", error.response?.data || "Failed to add to cart. Please login first.");
+      Alert.alert("Error", api.getErrorMessage(error, "Failed to add to cart. Please login first."));
     } finally {
       setAddingToCart(false);
     }
@@ -65,7 +65,7 @@ const ProductDetails = () => {
         Alert.alert("Success", "Added to wishlist!");
       }
     } catch (error: any) {
-      Alert.alert("Error", error.response?.data || "Failed to update wishlist. Please login first.");
+      Alert.alert("Error", api.getErrorMessage(error, "Failed to update wishlist. Please login first."));
     }
   };
 

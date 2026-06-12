@@ -42,22 +42,43 @@ axiosInstance.interceptors.request.use(
 // ============================================================
 // Helper: map backend ProductResponseDTO → frontend Product
 // ============================================================
-const mapProduct = (p: any): Product => ({
-  id: p.id,
-  name: p.name,
-  subtitle: p.brand || "",
-  price: p.price,
-  originalPrice: p.originalPrice,
-  image: p.imageUrls && p.imageUrls.length > 0
-    ? { uri: p.imageUrls[0] }
-    : require('@/assets/images/icon.png'),
-  rating: p.rating || 0,
-  reviews: p.reviewCount || 0,
-  category: p.category || "",
-  flavors: p.flavors || [],
-  weights: p.weight ? [p.weight] : [],
-  description: p.description || "",
-});
+const imageMap: Record<string, any> = {
+  "protein 1.jpg": require('@/assets/images/protein 1.jpg'),
+  "protein 2.jpg": require('@/assets/images/protein 2.jpg'),
+  "protein 3.jpg": require('@/assets/images/protein 3.jpg'),
+  "protein 4.jpg": require('@/assets/images/protein 4.jpg'),
+  "creatine 1.jpg": require('@/assets/images/creatine 1.jpg'),
+  "creatine 2.jpg": require('@/assets/images/creatine 2.jpg'),
+  "preworkout 1.jpg": require('@/assets/images/preworkout 1.jpg'),
+  "vitamins.jpg": require('@/assets/images/vitamins.jpg'),
+};
+
+const mapProduct = (p: any): Product => {
+  let imageSource = require('@/assets/images/icon.png');
+  if (p.imageUrls && p.imageUrls.length > 0) {
+    const url = p.imageUrls[0];
+    if (imageMap[url]) {
+      imageSource = imageMap[url];
+    } else {
+      imageSource = { uri: url };
+    }
+  }
+
+  return {
+    id: p.id,
+    name: p.name,
+    subtitle: p.brand || "",
+    price: p.price,
+    originalPrice: p.originalPrice,
+    image: imageSource,
+    rating: p.rating || 0,
+    reviews: p.reviewCount || 0,
+    category: p.category || "",
+    flavors: p.flavors || [],
+    weights: p.weight ? [p.weight] : [],
+    description: p.description || "",
+  };
+};
 
 // ============================================================
 // API Methods — match backend controllers exactly
@@ -73,11 +94,11 @@ export const api = {
   // -----------------------------------------------------------
   login: async (email: string, password: string) => {
     const response = await axiosInstance.post('/auth/login', { email, password });
-    // response.data = { success, message, data: { accessToken, tokenType, email } }
+    // response.data = { success, message, data: { accessToken, tokenType, email, role, fullName } }
     const authData = response.data.data;
     return {
       token: authData.accessToken,
-      user: { email: authData.email, name: "User" }
+      user: { email: authData.email, name: authData.fullName, role: authData.role }
     };
   },
 
@@ -90,7 +111,7 @@ export const api = {
     const authData = response.data.data;
     return {
       token: authData.accessToken,
-      user: { email: authData.email, name }
+      user: { email: authData.email, name: authData.fullName, role: authData.role }
     };
   },
 
@@ -119,8 +140,8 @@ export const api = {
       // response.data = { success, message, data: [ ProductResponseDTO, ... ] }
       const products = response.data.data;
       return (products || []).map(mapProduct);
-    } catch (error) {
-      console.error('Error fetching products', error);
+    } catch (error: any) {
+      console.log('Error fetching products', error.message);
       return [];
     }
   },
@@ -167,18 +188,29 @@ export const api = {
       const cartData = response.data;
       if (!cartData || !cartData.items) return { items: [], totalAmount: 0 };
       return {
-        items: cartData.items.map((item: any) => ({
-          id: item.productId,
-          name: item.productName,
-          price: item.price,
-          quantity: item.quantity,
-          subtotal: item.subtotal,
-        })),
+        items: cartData.items.map((item: any) => {
+          let imageSource = require('@/assets/images/icon.png');
+          if (item.imageUrl) {
+            if (imageMap[item.imageUrl]) {
+              imageSource = imageMap[item.imageUrl];
+            } else {
+              imageSource = { uri: item.imageUrl };
+            }
+          }
+          return {
+            id: item.productId,
+            name: item.productName,
+            price: item.price,
+            quantity: item.quantity,
+            subtotal: item.subtotal,
+            image: imageSource,
+          };
+        }),
         totalAmount: cartData.totalAmount || 0,
       };
     } catch (error: any) {
       // Cart might not exist yet for new users
-      console.error('Error fetching cart', error);
+      console.log('Error fetching cart', error.message);
       return { items: [], totalAmount: 0 };
     }
   },
@@ -223,18 +255,28 @@ export const api = {
       // Returns List<WishlistResponseDTO> directly (no ApiResponse wrapper)
       const items = response.data;
       if (!items) return [];
-      return items.map((item: any) => ({
-        id: item.productId,
-        name: item.productName,
-        subtitle: "",
-        price: item.price || 0,
-        image: item.imageUrl ? { uri: item.imageUrl } : require('@/assets/images/icon.png'),
-        rating: 0,
-        reviews: 0,
-        category: "",
-      }));
-    } catch (error) {
-      console.error('Error fetching wishlist', error);
+      return items.map((item: any) => {
+        let imageSource = require('@/assets/images/icon.png');
+        if (item.imageUrl) {
+          if (imageMap[item.imageUrl]) {
+            imageSource = imageMap[item.imageUrl];
+          } else {
+            imageSource = { uri: item.imageUrl };
+          }
+        }
+        return {
+          id: item.productId,
+          name: item.productName,
+          subtitle: "",
+          price: item.price || 0,
+          image: imageSource,
+          rating: 0,
+          reviews: 0,
+          category: "",
+        };
+      });
+    } catch (error: any) {
+      console.log('Error fetching wishlist', error.message);
       return [];
     }
   },
@@ -271,8 +313,8 @@ export const api = {
     return response.data;
   },
 
-  placeOrder: async (addressId: number) => {
-    const response = await axiosInstance.post(`/orders/place?addressId=${addressId}`);
+  placeOrder: async (addressId: number, paymentMethod: string = "cod") => {
+    const response = await axiosInstance.post(`/orders/place?addressId=${addressId}&paymentMethod=${paymentMethod}`);
     return response.data;
   },
 
@@ -317,6 +359,70 @@ export const api = {
   setDefaultAddress: async (addressId: number) => {
     const response = await axiosInstance.put(`/address/default/${addressId}`);
     return response.data;
+  },
+
+  // -----------------------------------------------------------
+  // ADMIN — AdminController: /api/admin
+  // -----------------------------------------------------------
+  getAdminUsers: async () => {
+    const response = await axiosInstance.get('/admin/users');
+    return response.data;
+  },
+  
+  deleteAdminUser: async (userId: number) => {
+    const response = await axiosInstance.delete(`/admin/users/${userId}`);
+    return response.data;
+  },
+
+  addAdminProduct: async (productData: any) => {
+    const response = await axiosInstance.post('/admin/products', productData);
+    return response.data;
+  },
+
+  deleteAdminProduct: async (productId: string) => {
+    const response = await axiosInstance.delete(`/admin/products/${productId}`);
+    return response.data;
+  },
+
+  reseedProducts: async () => {
+    const response = await axiosInstance.post('/admin/products/reseed');
+    return response.data;
+  },
+
+  getAdminOrders: async () => {
+    const response = await axiosInstance.get('/admin/orders');
+    return response.data;
+  },
+
+  sendNotification: async (title: string, message: string, icon: string, iconColor: string) => {
+    const response = await axiosInstance.post('/admin/notifications', {
+      title,
+      message,
+      icon,
+      iconColor,
+    });
+    return response.data;
+  },
+
+  // -----------------------------------------------------------
+  // NOTIFICATIONS — NotificationController: /api/notifications
+  // -----------------------------------------------------------
+  getNotifications: async () => {
+    const response = await axiosInstance.get('/notifications');
+    return response.data;
+  },
+
+  getErrorMessage: (error: any, defaultMessage: string): string => {
+    if (error?.response?.data) {
+      const data = error.response.data;
+      if (typeof data === 'string') return data;
+      if (typeof data === 'object') {
+        if (data.message) return data.message;
+        if (data.error) return data.error;
+      }
+    }
+    if (error?.message) return error.message;
+    return defaultMessage;
   },
 };
 

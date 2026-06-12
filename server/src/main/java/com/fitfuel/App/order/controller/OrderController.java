@@ -21,10 +21,11 @@ public class OrderController {
     @PostMapping("/place")
     public String placeOrder(
             Authentication authentication,
-            @RequestParam Long addressId
+            @RequestParam Long addressId,
+            @RequestParam(required = false, defaultValue = "cod") String paymentMethod
     ) {
         UserEntity user = (UserEntity) authentication.getPrincipal();
-        return orderService.placeOrder(user, addressId);
+        return orderService.placeOrder(user, addressId, paymentMethod);
     }
 
     @GetMapping

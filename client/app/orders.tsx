@@ -55,7 +55,7 @@ const OrdersScreen = () => {
               Alert.alert("Success", "Order cancelled successfully.");
             } catch (error: any) {
               console.error(error);
-              Alert.alert("Error", error.response?.data || "Failed to cancel order.");
+              Alert.alert("Error", api.getErrorMessage(error, "Failed to cancel order."));
             }
           }
         }

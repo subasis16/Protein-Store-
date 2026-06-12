@@ -1,37 +1,47 @@
 import Colors from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useState, useCallback } from "react";
+import { useFocusEffect } from "expo-router";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import api from "@/services/api";
 
 const NotificationsScreen = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const notifications = [
-    {
-      title: "Order Delivered! 🥳",
-      body: "Your order of Premium Whey Protein Has Been Delivered to your shipping address.",
-      time: "2 hours ago",
-      icon: "checkmark-circle-outline",
-      iconColor: "#4ADE80"
-    },
-    {
-      title: "Flash Sale Alert! ⚡",
-      body: "Flat 20% off on all pre-workouts only for the next 3 hours. Hurry!",
-      time: "1 day ago",
-      icon: "flash-outline",
-      iconColor: "#FBBF24"
-    },
-    {
-      title: "Back in stock! 📦",
-      body: "Micronized Creatine Monohydrate is back in stock. Order now before it runs out!",
-      time: "2 days ago",
-      icon: "cube-outline",
-      iconColor: Colors.primary
+  const fetchNotifications = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await api.getNotifications();
+      setNotifications(data || []);
+    } catch (e) {
+      console.log("Error fetching notifications", e);
+    } finally {
+      setLoading(false);
     }
-  ];
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchNotifications();
+    }, [fetchNotifications])
+  );
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "Just now";
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = Math.floor((now.getTime() - date.getTime()) / 1000); // in seconds
+    
+    if (diff < 60) return "Just now";
+    if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
+    return `${Math.floor(diff / 86400)} days ago`;
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -43,20 +53,32 @@ const NotificationsScreen = () => {
         <View style={{ width: 44 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        {notifications.map((item, index) => (
-          <View key={index} style={styles.notificationCard}>
-            <View style={[styles.iconWrapper, { backgroundColor: `${item.iconColor}20` }]}>
-              <Ionicons name={item.icon as any} size={24} color={item.iconColor} />
+      {loading ? (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      ) : notifications.length === 0 ? (
+        <View style={styles.centerContainer}>
+          <Ionicons name="notifications-off-outline" size={64} color={Colors.border} />
+          <Text style={styles.emptyTitle}>No Notifications</Text>
+          <Text style={styles.emptyText}>You don't have any notifications yet.</Text>
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={styles.content}>
+          {notifications.map((item, index) => (
+            <View key={index} style={styles.notificationCard}>
+              <View style={[styles.iconWrapper, { backgroundColor: `${item.iconColor || "#3B82F6"}20` }]}>
+                <Ionicons name={(item.icon || "notifications-outline") as any} size={24} color={item.iconColor || "#3B82F6"} />
+              </View>
+              <View style={styles.textContainer}>
+                <Text style={styles.notiTitle}>{item.title}</Text>
+                <Text style={styles.notiBody}>{item.message}</Text>
+                <Text style={styles.notiTime}>{formatDate(item.createdAt)}</Text>
+              </View>
             </View>
-            <View style={styles.textContainer}>
-              <Text style={styles.notiTitle}>{item.title}</Text>
-              <Text style={styles.notiBody}>{item.body}</Text>
-              <Text style={styles.notiTime}>{item.time}</Text>
-            </View>
-          </View>
-        ))}
-      </ScrollView>
+          ))}
+        </ScrollView>
+      )}
     </View>
   );
 };
@@ -91,6 +113,24 @@ const styles = StyleSheet.create({
   content: {
     padding: 24,
     gap: 16,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: Colors.textPrimary,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    textAlign: "center",
   },
   notificationCard: {
     flexDirection: "row",

@@ -9,8 +9,6 @@ const SettingsScreen = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const [darkMode, setDarkMode] = useState(false);
-  const [pushNoti, setPushNoti] = useState(true);
   const [emailNoti, setEmailNoti] = useState(false);
 
   return (
@@ -30,7 +28,6 @@ const SettingsScreen = () => {
           {[
             { label: "Edit Profile", icon: "person-outline" },
             { label: "Change Password", icon: "key-outline" },
-            { label: "Language", icon: "globe-outline", value: "English" }
           ].map((item, index) => (
             <TouchableOpacity key={index} style={styles.itemRow}>
               <View style={styles.itemLeft}>
@@ -39,10 +36,7 @@ const SettingsScreen = () => {
                 </View>
                 <Text style={styles.itemLabel}>{item.label}</Text>
               </View>
-              <View style={styles.itemRight}>
-                {item.value && <Text style={styles.valueText}>{item.value}</Text>}
-                <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} />
-              </View>
+              <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} />
             </TouchableOpacity>
           ))}
         </View>
@@ -50,36 +44,6 @@ const SettingsScreen = () => {
         {/* Preferences */}
         <Text style={styles.sectionTitle}>Preferences</Text>
         <View style={styles.card}>
-          <View style={styles.itemRow}>
-            <View style={styles.itemLeft}>
-              <View style={styles.iconWrapper}>
-                <Ionicons name="moon-outline" size={20} color={Colors.primary} />
-              </View>
-              <Text style={styles.itemLabel}>Dark Mode</Text>
-            </View>
-            <Switch 
-              value={darkMode} 
-              onValueChange={setDarkMode}
-              trackColor={{ false: Colors.border, true: Colors.primary }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-
-          <View style={styles.itemRow}>
-            <View style={styles.itemLeft}>
-              <View style={styles.iconWrapper}>
-                <Ionicons name="notifications-outline" size={20} color={Colors.primary} />
-              </View>
-              <Text style={styles.itemLabel}>Push Notifications</Text>
-            </View>
-            <Switch 
-              value={pushNoti} 
-              onValueChange={setPushNoti}
-              trackColor={{ false: Colors.border, true: Colors.primary }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-
           <View style={styles.itemRow}>
             <View style={styles.itemLeft}>
               <View style={styles.iconWrapper}>

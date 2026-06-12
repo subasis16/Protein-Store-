@@ -17,7 +17,8 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
                 "com.fitfuel.App.payment.repository",
                 "com.fitfuel.App.inventory.repository",
                 "com.fitfuel.App.address.repository",
-                "com.fitfuel.App.Review.repository"
+                "com.fitfuel.App.Review.repository",
+                "com.fitfuel.App.notification.repository"
 })
 
 

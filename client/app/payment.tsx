@@ -42,7 +42,6 @@ const PaymentScreen = () => {
         <View style={styles.methodList}>
           {[
             { name: "Google Pay / PhonePe (UPI)", icon: "qr-code-outline" },
-            { name: "Net Banking", icon: "business-outline" },
             { name: "Cash on Delivery", icon: "cash-outline" }
           ].map((item, index) => (
             <View key={index} style={styles.methodItem}>

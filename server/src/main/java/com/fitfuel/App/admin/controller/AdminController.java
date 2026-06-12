@@ -2,6 +2,7 @@ package com.fitfuel.App.admin.controller;
 
 import com.fitfuel.App.admin.dto.AdminProductRequestDTO;
 import com.fitfuel.App.admin.service.AdminService;
+import com.fitfuel.App.notification.dto.NotificationRequestDTO;
 import com.fitfuel.App.order.entity.Order;
 import com.fitfuel.App.user.entity.UserEntity;
 import org.springframework.security.core.Authentication;
@@ -28,6 +29,12 @@ public class AdminController {
     UserEntity admin = (UserEntity) authentication.getPrincipal();
 
     return adminService.addProduct(admin, request);
+  }
+
+  @PostMapping("/products/reseed")
+  public String reseedProducts(Authentication authentication) {
+    UserEntity admin = (UserEntity) authentication.getPrincipal();
+    return adminService.reseedProducts(admin);
   }
 
   @PutMapping("/products/{productId}")
@@ -86,5 +93,23 @@ public class AdminController {
     UserEntity admin = (UserEntity) authentication.getPrincipal();
 
     return adminService.getAllOrders(admin);
+  }
+
+  @DeleteMapping("/users/{userId}")
+  public String deleteUser(
+      Authentication authentication,
+      @PathVariable Long userId) {
+
+    UserEntity admin = (UserEntity) authentication.getPrincipal();
+
+    return adminService.deleteUser(admin, userId);
+  }
+
+  @PostMapping("/notifications")
+  public String sendNotification(
+      Authentication authentication,
+      @RequestBody NotificationRequestDTO request) {
+    UserEntity admin = (UserEntity) authentication.getPrincipal();
+    return adminService.sendNotification(admin, request);
   }
 }

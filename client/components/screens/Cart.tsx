@@ -74,7 +74,11 @@ const CartScreen = () => {
   const renderItem = ({ item }: { item: any }) => (
     <View style={styles.cartItem}>
       <View style={styles.imageContainer}>
-        <Ionicons name="cube-outline" size={40} color={Colors.primary} />
+        {item.image ? (
+          <Image source={item.image} style={{ width: "100%", height: "100%", borderRadius: 16 }} resizeMode="cover" />
+        ) : (
+          <Ionicons name="cube-outline" size={40} color={Colors.primary} />
+        )}
       </View>
       <View style={styles.itemInfo}>
         <View style={styles.itemHeader}>
