@@ -4,15 +4,35 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
+import api from "@/services/api";
+import { useAuth } from "@/context/AuthContext";
 
 const Header = () => {
   const router = useRouter();
+  const { token } = useAuth();
   const [locationText, setLocationText] = useState("Fetching location...");
   const [loading, setLoading] = useState(true);
+  const [hasNotifications, setHasNotifications] = useState(false);
 
   useEffect(() => {
     getLocation();
   }, []);
+
+  useEffect(() => {
+    if (!token) {
+      setHasNotifications(false);
+      return;
+    }
+    const checkNotifications = async () => {
+      try {
+        const data = await api.getNotifications();
+        setHasNotifications(Array.isArray(data) && data.length > 0);
+      } catch (e) {
+        setHasNotifications(false);
+      }
+    };
+    checkNotifications();
+  }, [token]);
 
   const getLocation = async () => {
     try {
@@ -70,7 +90,7 @@ const Header = () => {
         onPress={() => router.push("/notifications")}
       >
         <Ionicons name="notifications-outline" size={24} color={Colors.textPrimary} />
-        <View style={styles.notificationBadge} />
+        {hasNotifications && <View style={styles.notificationBadge} />}
       </TouchableOpacity>
     </View>
   );
@@ -125,4 +145,3 @@ const styles = StyleSheet.create({
     borderColor: Colors.cardBackground,
   },
 });
-

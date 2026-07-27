@@ -32,10 +32,14 @@ const AuthScreen = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleSubmit = async () => {
+    setErrorMessage("");
     if (!email || !password || (!isLogin && !name)) {
-      Alert.alert("Error", "Please fill in all fields.");
+      const msg = "Please fill in all required fields.";
+      setErrorMessage(msg);
+      Alert.alert("Required Fields", msg);
       return;
     }
     
@@ -50,7 +54,11 @@ const AuthScreen = () => {
       }
     } catch (error: any) {
       console.error(error);
-      Alert.alert("Error", error.response?.data?.message || "Authentication failed. Please try again.");
+      const userMsg = isLogin 
+        ? "Invalid email or password. Please check your credentials and try again."
+        : api.getErrorMessage(error, "Registration failed. Please try again.");
+      setErrorMessage(userMsg);
+      Alert.alert("Authentication Failed", userMsg);
     } finally {
       setLoading(false);
     }
@@ -72,6 +80,13 @@ const AuthScreen = () => {
         </View>
 
         <View style={styles.formContainer}>
+          {!!errorMessage && (
+            <View style={styles.errorBox}>
+              <Ionicons name="alert-circle-outline" size={20} color="#DC2626" />
+              <Text style={styles.errorBoxText}>{errorMessage}</Text>
+            </View>
+          )}
+
           {!isLogin && (
             <View style={styles.inputWrapper}>
               <Ionicons name="person-outline" size={20} color={Colors.textSecondary} style={styles.inputIcon} />
@@ -80,7 +95,7 @@ const AuthScreen = () => {
                 placeholderTextColor={Colors.textSecondary}
                 style={styles.input}
                 value={name}
-                onChangeText={setName}
+                onChangeText={(text) => { setName(text); setErrorMessage(""); }}
               />
             </View>
           )}
@@ -94,7 +109,7 @@ const AuthScreen = () => {
               autoCapitalize="none"
               style={styles.input}
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(text) => { setEmail(text); setErrorMessage(""); }}
             />
           </View>
 
@@ -106,12 +121,12 @@ const AuthScreen = () => {
               secureTextEntry
               style={styles.input}
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(text) => { setPassword(text); setErrorMessage(""); }}
             />
           </View>
 
           {isLogin && (
-            <TouchableOpacity style={styles.forgotPassword}>
+            <TouchableOpacity style={styles.forgotPassword} onPress={() => Alert.alert("Coming Soon", "Password reset will be available in a future update.")}>
               <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
             </TouchableOpacity>
           )}
@@ -128,13 +143,11 @@ const AuthScreen = () => {
             )}
           </TouchableOpacity>
 
-
-
           <View style={styles.toggleRow}>
             <Text style={styles.toggleText}>
               {isLogin ? "Don't have an account? " : "Already have an account? "}
             </Text>
-            <TouchableOpacity onPress={() => setIsLogin(!isLogin)}>
+            <TouchableOpacity onPress={() => { setIsLogin(!isLogin); setErrorMessage(""); }}>
               <Text style={styles.toggleLink}>{isLogin ? "Sign Up" : "Login"}</Text>
             </TouchableOpacity>
           </View>
@@ -168,6 +181,24 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     paddingHorizontal: 30,
+  },
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FEE2E2",
+    borderWidth: 1,
+    borderColor: "#FCA5A5",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 16,
+    gap: 10,
+  },
+  errorBoxText: {
+    flex: 1,
+    color: "#991B1B",
+    fontSize: 14,
+    fontWeight: "600",
   },
   inputWrapper: {
     flexDirection: "row",

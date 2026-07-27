@@ -205,8 +205,8 @@ public class CartService {
     private void recalculateCartTotal(Cart cart) {
         BigDecimal total = cartItemRepository.findByCart(cart)
                 .stream()
-                .map(CartItem::getSubtotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .map(item -> item.getSubtotal() != null ? item.getSubtotal() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, (a, b) -> a.add(b));
 
         cart.setTotalAmount(total);
         cartRepository.save(cart);

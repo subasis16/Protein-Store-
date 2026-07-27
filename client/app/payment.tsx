@@ -1,13 +1,82 @@
 import Colors from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useState } from "react";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Modal, TextInput, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+interface SavedCard {
+  id: string;
+  number: string;
+  expiry: string;
+  primary: boolean;
+}
 
 const PaymentScreen = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+
+  const [savedCards, setSavedCards] = useState<SavedCard[]>([
+    { id: "1", number: "•••• •••• •••• 4829", expiry: "12/28", primary: true },
+  ]);
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [cardNumber, setCardNumber] = useState("");
+  const [expiry, setExpiry] = useState("");
+
+  const handleAddCard = () => {
+    if (!cardNumber.trim() || !expiry.trim()) {
+      Alert.alert("Error", "Please fill in all fields");
+      return;
+    }
+
+    const cleaned = cardNumber.replace(/\s?/g, "");
+    if (cleaned.length < 4) {
+      Alert.alert("Error", "Invalid card number");
+      return;
+    }
+    const last4 = cleaned.slice(-4);
+    const maskedNumber = `•••• •••• •••• ${last4}`;
+
+    const newCard: SavedCard = {
+      id: Date.now().toString(),
+      number: maskedNumber,
+      expiry: expiry.trim(),
+      primary: savedCards.length === 0,
+    };
+
+    setSavedCards([...savedCards, newCard]);
+    setCardNumber("");
+    setExpiry("");
+    setModalVisible(false);
+    Alert.alert("Success", "New card added successfully!");
+  };
+
+  const handleMakePrimary = (id: string) => {
+    setSavedCards(prev =>
+      prev.map(card => ({
+        ...card,
+        primary: card.id === id,
+      }))
+    );
+  };
+
+  const handleDeleteCard = (id: string) => {
+    Alert.alert("Delete Card", "Are you sure you want to delete this payment method?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => {
+          const filtered = savedCards.filter(card => card.id !== id);
+          if (filtered.length > 0 && !filtered.some(c => c.primary)) {
+            filtered[0].primary = true;
+          }
+          setSavedCards(filtered);
+        },
+      },
+    ]);
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -23,18 +92,37 @@ const PaymentScreen = () => {
         {/* Saved Cards */}
         <Text style={styles.sectionTitle}>Saved Cards</Text>
         
-        <View style={styles.card}>
-          <View style={styles.cardRow}>
-            <Ionicons name="card" size={32} color={Colors.primary} />
-            <View style={styles.cardDetails}>
-              <Text style={styles.cardNumber}>•••• •••• •••• 4829</Text>
-              <Text style={styles.cardExpiry}>Expires 12/28</Text>
-            </View>
-            <View style={styles.primaryBadge}>
-              <Text style={styles.primaryBadgeText}>Primary</Text>
-            </View>
+        {savedCards.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <Ionicons name="card-outline" size={48} color={Colors.textSecondary} />
+            <Text style={styles.emptyText}>No saved cards found</Text>
           </View>
-        </View>
+        ) : (
+          savedCards.map(card => (
+            <TouchableOpacity 
+              key={card.id} 
+              style={[styles.card, card.primary && styles.cardActive]}
+              onPress={() => handleMakePrimary(card.id)}
+            >
+              <View style={styles.cardRow}>
+                <Ionicons name="card" size={32} color={card.primary ? Colors.primary : Colors.textSecondary} />
+                <View style={styles.cardDetails}>
+                  <Text style={styles.cardNumber}>{card.number}</Text>
+                  <Text style={styles.cardExpiry}>Expires {card.expiry}</Text>
+                </View>
+                {card.primary ? (
+                  <View style={styles.primaryBadge}>
+                    <Text style={styles.primaryBadgeText}>Primary</Text>
+                  </View>
+                ) : (
+                  <TouchableOpacity onPress={() => handleDeleteCard(card.id)}>
+                    <Ionicons name="trash-outline" size={20} color="#FF4444" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </TouchableOpacity>
+          ))
+        )}
 
         {/* Other Options */}
         <Text style={styles.sectionTitle}>Other Methods</Text>
@@ -56,11 +144,61 @@ const PaymentScreen = () => {
           ))}
         </View>
 
-        <TouchableOpacity style={styles.addButton}>
+        <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
           <Ionicons name="add" size={20} color="#FFFFFF" />
           <Text style={styles.addButtonText}>Add New Payment Method</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Add Card Modal */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add New Card</Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <Ionicons name="close" size={24} color={Colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.label}>Card Number</Text>
+            <View style={styles.inputContainer}>
+              <Ionicons name="card-outline" size={20} color={Colors.textSecondary} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={cardNumber}
+                onChangeText={setCardNumber}
+                placeholder="1234 5678 1234 5678"
+                keyboardType="numeric"
+                maxLength={19}
+                placeholderTextColor={Colors.textSecondary}
+              />
+            </View>
+
+            <Text style={styles.label}>Expiry Date</Text>
+            <View style={styles.inputContainer}>
+              <Ionicons name="calendar-outline" size={20} color={Colors.textSecondary} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={expiry}
+                onChangeText={setExpiry}
+                placeholder="MM/YY"
+                maxLength={5}
+                placeholderTextColor={Colors.textSecondary}
+              />
+            </View>
+
+            <TouchableOpacity style={styles.saveButton} onPress={handleAddCard}>
+              <Text style={styles.saveButtonText}>Save Card</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -108,7 +246,11 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 1,
     borderColor: Colors.border,
-    marginBottom: 30,
+    marginBottom: 16,
+  },
+  cardActive: {
+    borderColor: Colors.primary,
+    borderWidth: 1.5,
   },
   cardRow: {
     flexDirection: "row",
@@ -129,15 +271,30 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   primaryBadge: {
-    backgroundColor: Colors.primaryLight,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    backgroundColor: Colors.primary + "1A", // 10% opacity
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
   },
   primaryBadgeText: {
     color: Colors.primary,
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "bold",
+  },
+  emptyCard: {
+    backgroundColor: Colors.cardBackground,
+    borderRadius: 20,
+    padding: 30,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 16,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
   },
   methodList: {
     backgroundColor: Colors.cardBackground,
@@ -188,6 +345,68 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   addButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: Colors.cardBackground,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 24,
+    paddingBottom: 40,
+    gap: 16,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: Colors.textPrimary,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: Colors.textPrimary,
+    marginBottom: -8,
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.backgroundBottom,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    height: 56,
+  },
+  inputIcon: {
+    marginRight: 12,
+  },
+  input: {
+    flex: 1,
+    fontSize: 15,
+    color: Colors.textPrimary,
+    fontWeight: "500",
+  },
+  saveButton: {
+    backgroundColor: Colors.primary,
+    height: 56,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 20,
+  },
+  saveButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "bold",

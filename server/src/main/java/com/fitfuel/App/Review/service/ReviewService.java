@@ -99,7 +99,7 @@ public class ReviewService {
     } else {
 
       double average = reviews.stream()
-          .mapToInt(Review::getRating)
+          .mapToInt(review -> review.getRating())
           .average()
           .orElse(0);
 

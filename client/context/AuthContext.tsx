@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, ReactNode, useContext } from 'react';
-import * as SecureStore from 'expo-secure-store';
+import storage from '../services/storage';
 import { useRouter } from 'expo-router';
 
 export interface User {
@@ -15,6 +15,7 @@ interface AuthContextData {
   loading: boolean;
   login: (userData: User, token: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (userData: User) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
@@ -31,8 +32,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const loadStoredAuth = async () => {
     try {
-      const storedToken = await SecureStore.getItemAsync('authToken');
-      const storedUser = await SecureStore.getItemAsync('authUser');
+      const storedToken = await storage.getItemAsync('authToken');
+      const storedUser = await storage.getItemAsync('authUser');
       
       if (storedToken && storedUser) {
         setToken(storedToken);
@@ -47,8 +48,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (userData: User, newToken: string) => {
     try {
-      await SecureStore.setItemAsync('authToken', newToken);
-      await SecureStore.setItemAsync('authUser', JSON.stringify(userData));
+      await storage.setItemAsync('authToken', newToken);
+      await storage.setItemAsync('authUser', JSON.stringify(userData));
       setToken(newToken);
       setUser(userData);
       router.replace('/');
@@ -59,8 +60,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     try {
-      await SecureStore.deleteItemAsync('authToken');
-      await SecureStore.deleteItemAsync('authUser');
+      await storage.deleteItemAsync('authToken');
+      await storage.deleteItemAsync('authUser');
       setToken(null);
       setUser(null);
       router.replace('/auth');
@@ -69,8 +70,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateUser = async (userData: User) => {
+    try {
+      await storage.setItemAsync('authUser', JSON.stringify(userData));
+      setUser(userData);
+    } catch (error) {
+      console.error('Error updating user state', error);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

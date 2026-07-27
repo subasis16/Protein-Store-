@@ -1,15 +1,13 @@
 import Colors from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
-import { ScrollView, StyleSheet, Text, Switch, TouchableOpacity, View } from "react-native";
+import React from "react";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const SettingsScreen = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-
-  const [emailNoti, setEmailNoti] = useState(false);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -26,10 +24,14 @@ const SettingsScreen = () => {
         <Text style={styles.sectionTitle}>Account</Text>
         <View style={styles.card}>
           {[
-            { label: "Edit Profile", icon: "person-outline" },
-            { label: "Change Password", icon: "key-outline" },
+            { label: "Edit Profile", icon: "person-outline", route: "/edit-profile" },
+            { label: "Change Password", icon: "key-outline", route: "/change-password" },
           ].map((item, index) => (
-            <TouchableOpacity key={index} style={styles.itemRow}>
+            <TouchableOpacity 
+              key={index} 
+              style={styles.itemRow}
+              onPress={() => item.route && router.push(item.route as any)}
+            >
               <View style={styles.itemLeft}>
                 <View style={styles.iconWrapper}>
                   <Ionicons name={item.icon as any} size={20} color={Colors.primary} />
@@ -39,25 +41,6 @@ const SettingsScreen = () => {
               <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} />
             </TouchableOpacity>
           ))}
-        </View>
-
-        {/* Preferences */}
-        <Text style={styles.sectionTitle}>Preferences</Text>
-        <View style={styles.card}>
-          <View style={styles.itemRow}>
-            <View style={styles.itemLeft}>
-              <View style={styles.iconWrapper}>
-                <Ionicons name="mail-outline" size={20} color={Colors.primary} />
-              </View>
-              <Text style={styles.itemLabel}>Email Notifications</Text>
-            </View>
-            <Switch 
-              value={emailNoti} 
-              onValueChange={setEmailNoti}
-              trackColor={{ false: Colors.border, true: Colors.primary }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
         </View>
       </ScrollView>
     </View>

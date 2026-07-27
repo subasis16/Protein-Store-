@@ -39,7 +39,7 @@ const ProfileScreen = () => {
             <Text style={styles.userName}>{user?.name || "User"}</Text>
             <Text style={styles.userEmail}>{user?.email || "user@example.com"}</Text>
           </View>
-          <TouchableOpacity style={styles.editButton}>
+          <TouchableOpacity style={styles.editButton} onPress={() => router.push("/edit-profile")}>
             <Ionicons name="pencil" size={18} color={Colors.textPrimary} />
           </TouchableOpacity>
         </View>

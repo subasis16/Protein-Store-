@@ -3,7 +3,6 @@ package com.fitfuel.App.search.service;
 import com.fitfuel.App.search.document.ProductSearchDocument;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
-import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -36,7 +35,7 @@ public class ProductSearchService {
                 return elasticsearchOperations
                                 .search(searchQuery, ProductSearchDocument.class)
                                 .stream()
-                                .map(SearchHit::getContent)
+                                .map(hit -> hit.getContent())
                                 .collect(Collectors.toList());
         }
 }

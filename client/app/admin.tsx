@@ -25,6 +25,24 @@ const AdminDashboard = () => {
   // Notification Form State
   const [notiTitle, setNotiTitle] = useState("");
   const [notiMessage, setNotiMessage] = useState("");
+  const [selectedIcon, setSelectedIcon] = useState("flash-outline");
+  const [selectedColor, setSelectedColor] = useState("#3B82F6");
+
+  const iconOptions = [
+    { icon: "flash-outline", label: "Deal ⚡" },
+    { icon: "gift-outline", label: "Offer 🎁" },
+    { icon: "notifications-outline", label: "Notice 🔔" },
+    { icon: "ribbon-outline", label: "New 🎉" },
+    { icon: "cube-outline", label: "Order 📦" },
+  ];
+
+  const colorOptions = [
+    { color: "#3B82F6", label: "Blue" },
+    { color: "#10B981", label: "Green" },
+    { color: "#8B5CF6", label: "Purple" },
+    { color: "#F59E0B", label: "Orange" },
+    { color: "#EF4444", label: "Red" },
+  ];
 
   // Product Form State
   const [showAddProduct, setShowAddProduct] = useState(false);
@@ -37,20 +55,6 @@ const AdminDashboard = () => {
   const [pWeight, setPWeight] = useState("2kg");
   const [pImageUrls, setPImageUrls] = useState("");
   const [pStock, setPStock] = useState("100");
-
-  // Role-Based Access Control Check
-  if (user?.role !== "ADMIN") {
-    return (
-      <View style={[styles.container, { paddingTop: insets.top, justifyContent: "center", alignItems: "center" }]}>
-        <Ionicons name="shield-half-outline" size={80} color={Colors.primary} />
-        <Text style={styles.errorTitle}>Access Denied</Text>
-        <Text style={styles.errorText}>You must be an administrator to view this page.</Text>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>Go Back</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -79,39 +83,66 @@ const AdminDashboard = () => {
     finally { setLoading(false); }
   };
 
+  const isAdmin = user?.role === "ADMIN";
+
   useEffect(() => {
+    if (!isAdmin) return;
     if (activeTab === "users") fetchUsers();
     if (activeTab === "products") fetchProducts();
     if (activeTab === "orders") fetchOrders();
-  }, [activeTab]);
+  }, [activeTab, isAdmin]);
+
+  // Role-Based Access Control Check
+  if (!isAdmin) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top, justifyContent: "center", alignItems: "center" }]}>
+        <Ionicons name="shield-half-outline" size={80} color={Colors.primary} />
+        <Text style={styles.errorTitle}>Access Denied</Text>
+        <Text style={styles.errorText}>You must be an administrator to view this page.</Text>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.replace("/(tabs)")}>
+          <Text style={styles.backButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   const handleDeleteUser = async (id: number) => {
-    Alert.alert("Confirm", "Are you sure you want to delete this user?", [
+    Alert.alert("Delete User", "Are you sure you want to delete this user?", [
       { text: "Cancel", style: "cancel" },
-      { 
+      {
         text: "Delete", style: "destructive",
         onPress: async () => {
           try {
+            setLoading(true);
             await api.deleteAdminUser(id);
-            Alert.alert("Success", "User deleted successfully");
+            Alert.alert("Success", "User deleted successfully!");
             fetchUsers();
-          } catch (e: any) { Alert.alert("Error", api.getErrorMessage(e, "Failed to delete")); }
+          } catch (e: any) {
+            Alert.alert("Error", "Failed to delete: " + api.getErrorMessage(e, "Unknown error"));
+          } finally {
+            setLoading(false);
+          }
         }
       }
     ]);
   };
 
   const handleDeleteProduct = async (id: string) => {
-    Alert.alert("Confirm", "Are you sure you want to delete this product?", [
+    Alert.alert("Delete Product", "Are you sure you want to delete this product?", [
       { text: "Cancel", style: "cancel" },
-      { 
+      {
         text: "Delete", style: "destructive",
         onPress: async () => {
           try {
+            setLoading(true);
             await api.deleteAdminProduct(id);
-            Alert.alert("Success", "Product deleted successfully");
+            Alert.alert("Success", "Product deleted successfully!");
             fetchProducts();
-          } catch (e: any) { Alert.alert("Error", api.getErrorMessage(e, "Failed to delete")); }
+          } catch (e: any) {
+            Alert.alert("Error", "Failed to delete: " + api.getErrorMessage(e, "Unknown error"));
+          } finally {
+            setLoading(false);
+          }
         }
       }
     ]);
@@ -168,17 +199,21 @@ const AdminDashboard = () => {
     }
     setLoading(true);
     try {
-      await api.sendNotification(notiTitle, notiMessage, "notifications-outline", "#3B82F6");
-      Alert.alert("Success", "Notification sent to all users!");
-      setNotiTitle(""); setNotiMessage("");
-    } catch (e: any) { Alert.alert("Error", api.getErrorMessage(e, "Failed to send")); } 
-    finally { setLoading(false); }
+      await api.sendNotification(notiTitle.trim(), notiMessage.trim(), selectedIcon, selectedColor);
+      Alert.alert("Success", "🎉 Notification successfully broadcasted to all users!");
+      setNotiTitle(""); 
+      setNotiMessage("");
+    } catch (e: any) { 
+      Alert.alert("Error", "Failed to send notification: " + api.getErrorMessage(e, "Error sending notification")); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   const adminMenu = [
-    { id: "products", icon: "cube-outline", label: "Manage Products", color: "#3B82F6" },
+    // { id: "products", icon: "cube-outline", label: "Manage Products", color: "#3B82F6" },
     { id: "users", icon: "people-outline", label: "Manage Users", color: "#10B981" },
-    { id: "orders", icon: "cart-outline", label: "All Orders", color: "#F59E0B" },
+    // { id: "orders", icon: "cart-outline", label: "All Orders", color: "#F59E0B" },
     { id: "notify", icon: "megaphone-outline", label: "Send Notification", color: "#8B5CF6" },
   ];
 
@@ -278,7 +313,7 @@ const AdminDashboard = () => {
               <View key={i} style={styles.listCard}>
                 <View style={styles.listInfo}>
                   <Text style={styles.listTitle}>{p.name}</Text>
-                  <Text style={styles.listSubtitle}>{p.category} • ${p.price}</Text>
+                  <Text style={styles.listSubtitle}>{p.category} • ₹{p.price}</Text>
                 </View>
                 <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDeleteProduct(p.id)}>
                   <Ionicons name="trash-outline" size={20} color="#EF4444" />
@@ -302,8 +337,8 @@ const AdminDashboard = () => {
         orders.map((o, i) => (
           <View key={i} style={styles.listCard}>
             <View style={styles.listInfo}>
-              <Text style={styles.listTitle}>Order #{o.id || o.orderId || Math.floor(Math.random()*1000)}</Text>
-              <Text style={styles.listSubtitle}>Total: ${o.totalAmount} • Status: {o.status || 'Pending'}</Text>
+              <Text style={styles.listTitle}>Order #{o.orderId || o.id || '—'}</Text>
+              <Text style={styles.listSubtitle}>Total: ₹{o.totalAmount} • Status: {o.status || 'Pending'}</Text>
               <Text style={{fontSize: 12, color: Colors.textSecondary, marginTop:4}}>{new Date(o.createdAt).toLocaleString()}</Text>
             </View>
           </View>
@@ -314,16 +349,116 @@ const AdminDashboard = () => {
 
   const renderNotify = () => (
     <View style={styles.panelContainer}>
-      <Text style={styles.sectionTitle}>Send Push Notification</Text>
+      <Text style={styles.sectionTitle}>Broadcast Notification to All Users</Text>
       <View style={styles.formCard}>
-        <Text style={styles.inputLabel}>Notification Title</Text>
-        <TextInput style={styles.input} placeholder="e.g. Flash Sale Alert! ⚡" value={notiTitle} onChangeText={setNotiTitle} />
+        <Text style={styles.inputLabel}>Notification Title *</Text>
+        <TextInput 
+          style={styles.input} 
+          placeholder="e.g. Flash Sale! 50% OFF Whey Protein ⚡" 
+          value={notiTitle} 
+          onChangeText={setNotiTitle} 
+        />
         
-        <Text style={styles.inputLabel}>Message</Text>
-        <TextInput style={[styles.input, styles.textArea]} placeholder="Enter message..." multiline numberOfLines={4} value={notiMessage} onChangeText={setNotiMessage} />
+        <Text style={styles.inputLabel}>Message Content *</Text>
+        <TextInput 
+          style={[styles.input, styles.textArea]} 
+          placeholder="Enter the broadcast message that all users will receive..." 
+          multiline 
+          numberOfLines={4} 
+          value={notiMessage} 
+          onChangeText={setNotiMessage} 
+        />
+
+        <Text style={styles.inputLabel}>Choose Icon</Text>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+          {iconOptions.map((opt: { icon: string; label: string }) => (
+            <TouchableOpacity
+              key={opt.icon}
+              onPress={() => setSelectedIcon(opt.icon)}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: 12,
+                borderWidth: 1.5,
+                borderColor: selectedIcon === opt.icon ? selectedColor : Colors.border,
+                backgroundColor: selectedIcon === opt.icon ? `${selectedColor}15` : Colors.backgroundBottom,
+              }}
+            >
+              <Ionicons name={opt.icon as any} size={18} color={selectedIcon === opt.icon ? selectedColor : Colors.textSecondary} />
+              <Text style={{ fontSize: 13, fontWeight: "600", color: selectedIcon === opt.icon ? selectedColor : Colors.textSecondary }}>
+                {opt.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <Text style={styles.inputLabel}>Choose Theme Color</Text>
+        <View style={{ flexDirection: "row", gap: 12, marginBottom: 20 }}>
+          {colorOptions.map((opt: { color: string; label: string }) => (
+            <TouchableOpacity
+              key={opt.color}
+              onPress={() => setSelectedColor(opt.color)}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: opt.color,
+                justifyContent: "center",
+                alignItems: "center",
+                borderWidth: selectedColor === opt.color ? 3 : 0,
+                borderColor: Colors.textPrimary,
+              }}
+            >
+              {selectedColor === opt.color && <Ionicons name="checkmark" size={20} color="white" />}
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Live Preview Card */}
+        <Text style={[styles.inputLabel, { color: Colors.primary }]}>Live Preview</Text>
+        <View style={{
+          flexDirection: "row",
+          backgroundColor: Colors.backgroundBottom,
+          borderRadius: 16,
+          padding: 16,
+          borderWidth: 1,
+          borderColor: Colors.border,
+          gap: 14,
+          marginBottom: 20,
+        }}>
+          <View style={{
+            width: 44,
+            height: 44,
+            borderRadius: 14,
+            backgroundColor: `${selectedColor}20`,
+            justifyContent: "center",
+            alignItems: "center",
+          }}>
+            <Ionicons name={selectedIcon as any} size={22} color={selectedColor} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 15, fontWeight: "bold", color: Colors.textPrimary }}>
+              {notiTitle.trim() || "Notification Title"}
+            </Text>
+            <Text style={{ fontSize: 13, color: Colors.textSecondary, marginTop: 4 }}>
+              {notiMessage.trim() || "Notification details will appear here..."}
+            </Text>
+            <Text style={{ fontSize: 11, color: Colors.textSecondary, marginTop: 6 }}>Just now</Text>
+          </View>
+        </View>
         
         <TouchableOpacity style={styles.primaryButton} onPress={handleSendNotification} disabled={loading}>
-          {loading ? <ActivityIndicator color="white" /> : <Text style={styles.primaryButtonText}>Broadcast Notification</Text>}
+          {loading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <>
+              <Ionicons name="paper-plane-outline" size={20} color="white" />
+              <Text style={styles.primaryButtonText}>Broadcast to All Users</Text>
+            </>
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -332,7 +467,7 @@ const AdminDashboard = () => {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => activeTab === "home" ? router.back() : setActiveTab("home")} style={styles.headerBackButton}>
+        <TouchableOpacity onPress={() => activeTab === "home" ? router.replace("/(tabs)") : setActiveTab("home")} style={styles.headerBackButton}>
           <Ionicons name={activeTab === "home" ? "arrow-back" : "close"} size={24} color={Colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>

@@ -1,8 +1,9 @@
 import Colors from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useCart } from "@/context/CartContext";
 
 export type TabName = "index" | "favorites" | "cart" | "profile";
 
@@ -20,22 +21,31 @@ const tabs = [
 
 const BottomBar = ({ activeTab, onTabChange }: BottomBarProps) => {
   const insets = useSafeAreaInsets();
+  const { cartCount } = useCart();
   
   return (
     <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 8) }]}>
       {tabs.map((tab) => {
         const isActive = activeTab === tab.name;
+        const isCart = tab.name === "cart";
         return (
           <TouchableOpacity
             key={tab.name}
             style={styles.tab}
             onPress={() => onTabChange(tab.name as TabName)}
           >
-            <Ionicons
-              name={(isActive ? tab.iconActive : tab.iconInactive) as any}
-              size={24}
-              color={isActive ? Colors.primary : Colors.textPrimary}
-            />
+            <View style={{ position: "relative" }}>
+              <Ionicons
+                name={(isActive ? tab.iconActive : tab.iconInactive) as any}
+                size={24}
+                color={isActive ? Colors.primary : Colors.textPrimary}
+              />
+              {isCart && cartCount > 0 && (
+                <View style={styles.badgeContainer}>
+                  <Text style={styles.badgeText}>{cartCount}</Text>
+                </View>
+              )}
+            </View>
             {isActive && <View style={styles.activeIndicator} />}
           </TouchableOpacity>
         );
@@ -73,5 +83,21 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: Colors.primary,
     marginTop: 4,
+  },
+  badgeContainer: {
+    position: "absolute",
+    right: -8,
+    top: -6,
+    backgroundColor: Colors.primary,
+    borderRadius: 9,
+    width: 18,
+    height: 18,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  badgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "bold",
   },
 });

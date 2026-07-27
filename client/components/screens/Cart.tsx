@@ -1,34 +1,16 @@
 import Colors from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState, useCallback } from "react";
+import React, { useCallback } from "react";
 import { useFocusEffect } from "expo-router";
 import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import api from "@/services/api";
+import { useCart } from "@/context/CartContext";
 
 const CartScreen = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  
-  const [cartItems, setCartItems] = useState<any[]>([]);
-  const [totalAmount, setTotalAmount] = useState(0);
-  const [loading, setLoading] = useState(true);
-
-  const fetchCart = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await api.getCart();
-      setCartItems(data.items);
-      setTotalAmount(data.totalAmount);
-    } catch (error) {
-      console.error("Failed to fetch cart", error);
-      setCartItems([]);
-      setTotalAmount(0);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { cartItems, totalAmount, loading, fetchCart, updateCartItem, removeFromCart } = useCart();
 
   useFocusEffect(
     useCallback(() => {
@@ -42,29 +24,20 @@ const CartScreen = () => {
     
     const newQuantity = Math.max(1, item.quantity + delta);
 
-    // Optimistic update
-    setCartItems(prev => prev.map(i => i.id === productId ? { ...i, quantity: newQuantity } : i));
-
     try {
-      await api.updateCartItem(productId, newQuantity);
-      await fetchCart(); // Re-fetch to get accurate totals from backend
+      await updateCartItem(productId, newQuantity);
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Failed to update quantity");
-      fetchCart();
     }
   };
 
   const removeItem = async (productId: string) => {
-    // Optimistic removal
-    setCartItems(prev => prev.filter(item => item.id !== productId));
     try {
-      await api.removeFromCart(productId);
-      await fetchCart(); // Re-fetch for accurate totals
+      await removeFromCart(productId);
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Failed to remove item");
-      fetchCart();
     }
   };
 

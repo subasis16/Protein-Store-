@@ -1,20 +1,22 @@
 import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
+import storage from './storage';
 import { Product } from "@/constants/products";
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 // ============================================================
-// IMPORTANT: For physical device (Expo Go via QR code), use your
-// computer's local WiFi IP address. Find it with: ipconfig
-// Replace the IP below with yours if 10.12.208.71 doesn't work.
+// Automatically detect developer machine IP from Expo hostUri
 // ============================================================
 const getBaseUrl = () => {
-  if (Platform.OS === 'android') {
-    // Physical Android device — use your computer's WiFi IP
-    return "http://10.12.208.71:8080/api";
+  if (Platform.OS === 'web') {
+    return "http://localhost:8080/api";
   }
-  // iOS simulator or web
-  return "http://localhost:8080/api";
+
+  // Extract host IP dynamically from Expo server hostUri (e.g., "10.19.146.71:8081")
+  const hostUri = Constants.expoConfig?.hostUri || (Constants as any).manifest2?.extra?.expoGo?.developer?.manifest?.debuggerHost || '';
+  const ip = hostUri ? hostUri.split(':')[0] : '10.19.146.71';
+
+  return `http://${ip}:8080/api`;
 };
 
 const API_BASE_URL = getBaseUrl();
@@ -30,13 +32,28 @@ const axiosInstance = axios.create({
 // Attach JWT token to every request automatically
 axiosInstance.interceptors.request.use(
   async (config) => {
-    const token = await SecureStore.getItemAsync('authToken');
+    const token = await storage.getItemAsync('authToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+// Clear invalid/expired token on 401 or 403 response (except for login/signup calls)
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      const url = error.config?.url || '';
+      if (!url.includes('/auth/login') && !url.includes('/auth/signup')) {
+        await storage.deleteItemAsync('authToken');
+        await storage.deleteItemAsync('authUser');
+      }
+    }
+    return Promise.reject(error);
+  }
 );
 
 // ============================================================
@@ -159,7 +176,7 @@ export const api = {
 
   searchProducts: async (query: string): Promise<Product[]> => {
     try {
-      const response = await axiosInstance.get(`/products/search?query=${query}`);
+      const response = await axiosInstance.get(`/products/search?query=${encodeURIComponent(query)}`);
       const products = response.data.data;
       return (products || []).map(mapProduct);
     } catch (error) {
@@ -394,13 +411,26 @@ export const api = {
     return response.data;
   },
 
-  sendNotification: async (title: string, message: string, icon: string, iconColor: string) => {
+  sendNotification: async (title: string, message: string, icon?: string, iconColor?: string) => {
     const response = await axiosInstance.post('/admin/notifications', {
       title,
       message,
-      icon,
-      iconColor,
+      icon: icon || "notifications-outline",
+      iconColor: iconColor || "#3B82F6",
     });
+    return response.data;
+  },
+
+  // -----------------------------------------------------------
+  // PAYMENTS — PaymentController: /api/payment
+  // -----------------------------------------------------------
+  createPaymentOrder: async (orderId: number) => {
+    const response = await axiosInstance.post('/payment/create-order', { orderId });
+    return response.data;
+  },
+
+  verifyPayment: async (paymentDetails: { razorpayOrderId: string; razorpayPaymentId: string; razorpaySignature: string }) => {
+    const response = await axiosInstance.post('/payment/verify', paymentDetails);
     return response.data;
   },
 
@@ -409,6 +439,19 @@ export const api = {
   // -----------------------------------------------------------
   getNotifications: async () => {
     const response = await axiosInstance.get('/notifications');
+    return response.data;
+  },
+
+  // -----------------------------------------------------------
+  // USER PROFILE & PASSWORD
+  // -----------------------------------------------------------
+  updateProfile: async (fullName: string) => {
+    const response = await axiosInstance.put('/user/update', { fullName });
+    return response.data;
+  },
+
+  changePassword: async (oldPassword: string, newPassword: string) => {
+    const response = await axiosInstance.put('/user/change-password', { oldPassword, newPassword });
     return response.data;
   },
 

@@ -5,8 +5,8 @@ FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
-# Copy the pre-built JAR from the server/target directory
-COPY server/target/*.jar app.jar
+# Copy the pre-built JAR from the root directory
+COPY app.jar app.jar
 
 # Expose the application port
 EXPOSE 8080

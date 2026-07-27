@@ -41,8 +41,12 @@ const HomeScreen = () => {
           ) : null
         }
         ListHeaderComponent={
-          <View>
-            <View style={[styles.darkSection, { paddingTop: insets.top }]}>
+          <View style={{ zIndex: 1 }}>
+            {/* Background layer with low zIndex */}
+            <View style={[styles.topBackground, { paddingTop: insets.top }]} />
+
+            {/* Header & Search layer with high zIndex to escape bounds */}
+            <View style={[styles.headerContainer, { paddingTop: insets.top }]}>
               <Header />
               <SearchBar />
             </View>
@@ -77,12 +81,20 @@ const styles = StyleSheet.create({
   flatList: {
     flex: 1,
   },
-  darkSection: {
+  topBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 250, // Enough height to sit behind the banner
     backgroundColor: Colors.backgroundTop,
-    paddingBottom: 80,
+    zIndex: 0,
+  },
+  headerContainer: {
+    zIndex: 20,
+    paddingBottom: 10, // Small padding between search and banner
   },
   bannerWrapper: {
-    marginTop: -70,
     zIndex: 10,
   },
   lightSection: {

@@ -3,7 +3,9 @@ import { Product } from "@/constants/products";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View, Image } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View, Image, Alert } from "react-native";
+import { useCart } from "@/context/CartContext";
+import api from "@/services/api";
 
 interface ProductCardProps {
   product: Product;
@@ -11,6 +13,7 @@ interface ProductCardProps {
 
 const ProductCard = ({ product }: ProductCardProps) => {
   const router = useRouter();
+  const { addToCart } = useCart();
 
   return (
     <TouchableOpacity
@@ -39,9 +42,21 @@ const ProductCard = ({ product }: ProductCardProps) => {
       {/* Price Row */}
       <View style={styles.priceRow}>
         <Text style={styles.price}>₹ {product.price}</Text>
-        <View style={styles.addButton}>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={async (e) => {
+            e.stopPropagation();
+            try {
+              await addToCart(product.id, 1);
+              Alert.alert("Success", "Added to cart!");
+            } catch (error: any) {
+              Alert.alert("Error", api.getErrorMessage(error, "Failed to add to cart. Please login first."));
+            }
+          }}
+          activeOpacity={0.7}
+        >
           <Ionicons name="add" size={18} color={Colors.primary} />
-        </View>
+        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );

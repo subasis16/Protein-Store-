@@ -87,7 +87,7 @@ public class OrderService {
         if ("cod".equalsIgnoreCase(paymentMethod)) {
             order.setStatus("PLACED");
         } else {
-            order.setStatus("PAID");
+            order.setStatus("PENDING");
         }
 
         List<OrderItem> orderItems = cartItems.stream()
@@ -106,22 +106,26 @@ public class OrderService {
         order.setItems(orderItems);
         orderRepository.save(order);
 
-        // Deduct stock for each item
-        for (CartItem cartItem : cartItems) {
-            productRepository.findById(cartItem.getProductId()).ifPresent(product -> {
-                int newStock = product.getStockQuantity() - cartItem.getQuantity();
-                product.setStockQuantity(newStock);
-                product.setInStock(newStock > 0);
-                productRepository.save(product);
-            });
+        if ("cod".equalsIgnoreCase(paymentMethod)) {
+            // Deduct stock for each item
+            for (CartItem cartItem : cartItems) {
+                productRepository.findById(cartItem.getProductId()).ifPresent(product -> {
+                    int newStock = product.getStockQuantity() - cartItem.getQuantity();
+                    product.setStockQuantity(newStock);
+                    product.setInStock(newStock > 0);
+                    productRepository.save(product);
+                });
+            }
+
+            // Clear user's cart
+            cartItemRepository.deleteAll(cartItems);
+            cart.setTotalAmount(java.math.BigDecimal.ZERO);
+            cartRepository.save(cart);
+
+            return "COD_SUCCESS:" + order.getId();
         }
 
-        // Clear user's cart
-        cartItemRepository.deleteAll(cartItems);
-        cart.setTotalAmount(java.math.BigDecimal.ZERO);
-        cartRepository.save(cart);
-
-        return "Order placed successfully";
+        return "ONLINE_PENDING:" + order.getId();
     }
 
     public List<OrderResponseDTO> getOrders(UserEntity user) {
